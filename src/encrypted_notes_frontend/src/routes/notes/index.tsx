@@ -65,7 +65,8 @@ export const Notes = () => {
 
     try {
       // バックエンドキャニスターにノートを追加します。
-      console.log('add note');
+      await auth.actor.addNote(currentNote.data);
+      await getNotes();
     } catch (err) {
       showMessage({
         title: 'Failed to add note',
@@ -87,7 +88,8 @@ export const Notes = () => {
 
     try {
       // ノートを削除します。
-      console.log('delete note');
+      await auth.actor.deleteNote(deleteId);
+      await getNotes();
     } catch (err) {
       showMessage({
         title: 'Failed to delete note',
@@ -107,14 +109,15 @@ export const Notes = () => {
 
     try {
       // バックエンドキャニスターからノート一覧を取得します。
-      setNotes([]);
+      const notes = await auth.actor.getNotes();
+      setNotes(notes);
     } catch (err) {
       showMessage({
         title: 'Failed to get notes',
         status: 'error',
       });
     }
-  }
+  };
 
   const updateNote = async () => {
     if (auth.status !== 'SYNCED') {
@@ -126,7 +129,8 @@ export const Notes = () => {
 
     try {
       // バックエンドキャニスターにノートを追加します。
-      console.log('update note');
+      await auth.actor.updateNote(currentNote);
+      await getNotes();
     } catch (err) {
       showMessage({
         title: 'Failed to update note',

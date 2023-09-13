@@ -32,19 +32,52 @@ export const useAuthProvider = (): AuthState => {
 
   const setupService = async (authClient: AuthClient) => {
     /** STEP2: 認証したユーザーのデータを取得します。 */
+    const identity = authClient.getIdentity();
 
     /** STEP3: バックエンドキャニスターを呼び出す準備をします。 */
+    // 取得した`identity`を使用して、ICと対話する`agent`を作成します。
+    const newAgent = new HttpAgent({ identity });
+    if (process.env.DFX_NETWORK === 'local') {
+      newAgent.fetchRootKey();
+    }
+    // 認証したユーザーの情報で`actor`を作成します。
+    const options = { agent: newAgent };
+    const actor = createActor(canisterId, options);
 
     /** STEP5: CryptoServiceクラスのインスタンスを生成します。 */
     const cryptoService = new CryptoService();
 
     /** STEP7: デバイスデータの設定を行います。 */
 
-    setAuth({ status: 'SYNCHRONIZING' });
+    setAuth({ actor, authClient, cryptoService, status: 'SYNCED' });
   };
 
   const login = async (): Promise<void> => {
     /** STEP1: 認証機能を実装します。 */
+    const iiUrl = `http://${process.env.INTERNET_IDENTITY_CANISTER_ID}.localhost:4943`;
+
+    return new Promise((resolve, reject) => {
+      // AuthClientオブジェクトを作成します。
+      AuthClient.create()
+        .then((authClient) => {
+          // 認証画面を開きます。
+          authClient.login({
+            identityProvider: iiUrl,
+            onSuccess: async () => {
+              try {
+                await setupService(authClient);
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            },
+            onError: (err) => {
+              reject(err);
+            },
+          });
+        })
+        .catch(reject);
+    });
   };
 
   const logout = async (): Promise<void> => {

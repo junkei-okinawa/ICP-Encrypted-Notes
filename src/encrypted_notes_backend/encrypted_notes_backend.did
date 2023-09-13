@@ -1,4 +1,7 @@
-// Sample code
+type EncryptedNote = record { id : nat; data : text };
 service : {
-    "greet" : (text) -> (text) query;
+  addNote : (text) -> ();
+  deleteNote : (nat) -> ();
+  getNotes : () -> (vec EncryptedNote) query;
+  updateNote : (EncryptedNote) -> ();
 };
