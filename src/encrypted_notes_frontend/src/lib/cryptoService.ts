@@ -1,3 +1,4 @@
+import { v4 as uuidV4 } from 'uuid';
 import { ActorSubclass } from '@dfinity/agent';
 
 import {
@@ -15,8 +16,14 @@ export class CryptoService {
   public readonly deviceAlias: string;
 
   /** STEP4: コンストラクタを定義します。 */
-  constructor() {
+  constructor(actor: ActorSubclass<_SERVICE>) {
+    this.actor = actor;
 
+    this.deviceAlias = window.localStorage.getItem('deviceAlias');
+    if (!this.deviceAlias) {
+      this.deviceAlias = uuidV4();
+      window.localStorage.setItem('deviceAlias', this.deviceAlias);
+    }
   }
 
   public async init(): Promise<boolean> {

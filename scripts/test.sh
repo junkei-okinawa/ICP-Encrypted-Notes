@@ -16,6 +16,12 @@ compare_result() {
 }
 
 TEST_STATUS=0
+TEST_DEVICE_ALIAS_01='TEST_DEVICE_ALIAS_01'
+TEST_DEVICE_ALIAS_02='TEST_DEVICE_ALIAS_02'
+TEST_PUBLIC_KEY_01='TEST_PUBLIC_KEY_01'
+TEST_PUBLIC_KEY_02='TEST_PUBLIC_KEY_02'
+TEST_ENCRYPTED_SYMMETRIC_KEY_01='TEST_ENCRYPTED_SYMMETRIC_KEY_01'
+TEST_ENCRYPTED_SYMMETRIC_KEY_02='TEST_ENCRYPTED_SYMMETRIC_KEY_02'
 
 # ===== 準備 =====
 dfx stop
@@ -30,6 +36,28 @@ dfx identity use test-user
 dfx deploy encrypted_notes_backend
 
 # ===== テスト =====
+FUNCTION='registerDevice'
+echo -e "\n===== $FUNCTION ====="
+EXPECT='()'
+RESULT=`dfx canister call encrypted_notes_backend $FUNCTION '('\"$TEST_DEVICE_ALIAS_01\"', '\"$TEST_PUBLIC_KEY_01\"')'`
+compare_result "Return none" "$EXPECT" "$RESULT" || TEST_STATUS=1
+
+EXPECT='()'
+RESULT=`dfx canister call encrypted_notes_backend $FUNCTION '('\"$TEST_DEVICE_ALIAS_02\"', '\"$TEST_PUBLIC_KEY_02\"')'`
+compare_result "Return none" "$EXPECT" "$RESULT" || TEST_STATUS=1
+
+FUNCTION='deleteDevice'
+echo -e "\n===== $FUNCTION ====="
+EXPECT='()'
+RESULT=`dfx canister call encrypted_notes_backend $FUNCTION '('\"$TEST_DEVICE_ALIAS_01\"')'`
+compare_result "Return none" "$EXPECT" "$RESULT" || TEST_STATUS=1
+
+FUNCTION='getDeviceAliases'
+echo -e "\n===== $FUNCTION ====="
+EXPECT='(vec { '\"$TEST_DEVICE_ALIAS_02\"' })'
+RESULT=`dfx canister call encrypted_notes_backend $FUNCTION`
+compare_result "Return deviceAliases list $FUNCTION" "$EXPECT" "$RESULT" || TEST_STATUS=1
+
 FUNCTION='addNote'
 echo -e "\n===== $FUNCTION ====="
 EXPECT='()'
