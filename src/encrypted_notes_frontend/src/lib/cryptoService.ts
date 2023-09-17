@@ -4,6 +4,8 @@ import { ActorSubclass } from '@dfinity/agent';
 import {
   _SERVICE,
 } from '../../../declarations/encrypted_notes_backend/encrypted_notes_backend.did';
+import { clearKeys, loadKey, storeKey } from './keyStorage';
+
 
 export class CryptoService {
   static readonly INIT_VECTOR_LENGTH = 12;
@@ -28,8 +30,38 @@ export class CryptoService {
 
   public async init(): Promise<boolean> {
     /** STEP6: 公開鍵・秘密鍵を生成します。 */
+    // データベースから公開鍵・秘密鍵を取得します。
+    this.publicKey = await loadKey('publicKey');
+    this.privateKey = await loadKey('privateKey');
+
+    if (!this.publicKey || !this.privateKey) {
+      // 公開鍵・秘密鍵が存在しない場合は、生成します。
+      const keyPair: CryptoKeyPair = await this.generateKeyPair();
+
+      // 生成した鍵をデータベースに保存します。
+      await storeKey('publicKey', keyPair.publicKey);
+      await storeKey('privateKey', keyPair.privateKey);
+
+      this.publicKey = keyPair.publicKey;
+      this.privateKey = keyPair.privateKey;
+    }
 
     /** STEP8: デバイスデータを登録します。 */
+    // publicKeyをexportしてBase64に変換します。
+    const exportedPublicKey = await window.crypto.subtle.exportKey(
+      'spki',
+      this.publicKey,
+    );
+    this.exportedPublicKeyBase64 = this.arrayBufferToBase64(exportedPublicKey);
+
+    // バックエンドキャニスターにデバイスエイリアスと公開鍵を登録します。
+    console.log("before registerDevice.");
+    console.log("this.deviceAlias: " + this.deviceAlias);
+    console.log("this.exportedPublicKeyBase64: " + this.exportedPublicKeyBase64);
+    await this.actor.registerDevice(
+      this.deviceAlias,
+      this.exportedPublicKeyBase64,
+    );
 
     /** STEP9: 対称鍵を生成します。 */
 

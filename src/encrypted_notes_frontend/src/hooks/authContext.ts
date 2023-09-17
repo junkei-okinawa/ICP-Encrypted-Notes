@@ -48,6 +48,8 @@ export const useAuthProvider = (): AuthState => {
     const cryptoService = new CryptoService(actor);
 
     /** STEP7: デバイスデータの設定を行います。 */
+    const initialized = await cryptoService.init();
+    console.log(`initialized: ${initialized}`);
 
     setAuth({ actor, authClient, cryptoService, status: 'SYNCED' });
   };

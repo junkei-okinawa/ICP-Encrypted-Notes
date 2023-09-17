@@ -88,4 +88,123 @@ impl Devices {
             }
         }
     }
+
+    /// 指定した公開鍵に紐づいている対称鍵を取得します。
+    ///
+    /// # Returns
+    /// * `Ok(EncryptedSymmetricKey)` - 対称鍵が登録されている場合
+    /// * `DeviceError::UnknownPublicKey` - 公開鍵が登録されていない場合
+    /// * `DeviceError::KeyNotSynchronized` - 対称鍵が登録されていない場合
+    /// * `DeviceError::DeviceNotRegistered` - Principalが登録されていない場合
+    pub fn get_encrypted_symmetric_key(
+        &mut self,
+        caller: Principal,
+        public_key: &PublicKey,
+    ) -> SynchronizeKeyResult {
+        match self.devices.get_mut(&caller) {
+            Some(device_data) => {
+                // 公開鍵が登録されているものであるかどうかを確認します。
+                if !Self::is_registered_public_key(device_data, public_key) {
+                    return Err(DeviceError::UnknownPublicKey);
+                }
+                match device_data.keys.get(public_key) {
+                    // 対称鍵が登録されている場合は、暗号化された対称鍵を返します。
+                    Some(encrypted_symmetric_key) => Ok(encrypted_symmetric_key.clone()),
+                    // 対称鍵が登録されていない場合は、エラーとします。
+                    None => Err(DeviceError::KeyNotSynchronized),
+                }
+            }
+            // プリンシパルが登録されていない場合は、エラーとします。
+            None => Err(DeviceError::DeviceNotRegistered),
+        }
+    }
+
+    /// 対称鍵を持っていない公開鍵の一覧を取得します。
+    pub fn get_unsynced_public_keys(&mut self, caller: Principal) -> Vec<PublicKey> {
+        match self.devices.get_mut(&caller) {
+            // 登録されている公開鍵のうち、対称鍵が登録されていないものをベクターで返します。
+            Some(device_data) => device_data
+                .aliases
+                .values()
+                .filter(|public_key| !device_data.keys.contains_key(*public_key))
+                .cloned()
+                .collect(),
+            None => Vec::new(),
+        }
+    }
+
+    /// 指定したPrincipalが対称鍵を持っているかどうかを確認するための関数です。
+    /// この関数は、`register_encrypted_symmetric_key`が呼ばれる前に呼ばれることを想定しています。
+    ///
+    /// # Returns
+    /// * `true` - 既に対称鍵が登録されている場合
+    /// * `false` - 対称鍵が登録されていない場合
+    pub fn is_encrypted_symmetric_key_registered(&self, caller: Principal) -> bool {
+        self.devices
+            .get(&caller)
+            .map_or(false, |device_data| !device_data.keys.is_empty())
+    }
+
+    /// 指定したPrincipalのデバイスデータに、対称鍵を登録します。
+    /// この関数は、Principal1つにつき、ただ一度だけ呼ばれることを想定しています。
+    ///
+    /// # Returns
+    /// * `Ok(())` - 登録に成功した場合
+    /// * `DeviceError::UnknownPublicKey` - 公開鍵が登録されていない場合
+    /// * `DeviceError::AlreadyRegistered` - 既に対称鍵が登録されている場合
+    /// * `DeviceError::DeviceNotRegistered` - Principalが登録されていない場合
+    pub fn register_encrypted_symmetric_key(
+        &mut self,
+        caller: Principal,
+        public_key: PublicKey,
+        encrypted_symmetric_key: EncryptedSymmetricKey,
+    ) -> RegisterKeyResult {
+        match self.devices.get_mut(&caller) {
+            Some(device_data) => {
+                // 登録しようとしている公開鍵が、デバイスデータの登録時に既に登録されているものかどうかを確認します。
+                if !Self::is_registered_public_key(device_data, &public_key) {
+                    return Err(DeviceError::UnknownPublicKey);
+                }
+                // 既に対称鍵が登録されている場合は、エラーとします。
+                if !device_data.keys.is_empty() {
+                    return Err(DeviceError::AlreadyRegistered);
+                }
+                device_data.keys.insert(public_key, encrypted_symmetric_key);
+                Ok(())
+            }
+            // プリンシパルが登録されていない場合は、エラーとします。
+            None => Err(DeviceError::DeviceNotRegistered),
+        }
+    }
+
+    /// 指定したPrincipalのデバイスデータに、公開鍵と対称鍵のペアを登録します。
+    ///
+    /// # Returns
+    /// * `Ok(())` - 登録に成功した場合
+    /// * `DeviceError::UnknownPublicKey` - 公開鍵が登録されていない場合
+    /// * `DeviceError::DeviceNotRegistered` - Principalが登録されていない場合
+    pub fn upload_encrypted_symmetric_keys(
+        &mut self,
+        caller: Principal,
+        keys: Vec<(PublicKey, EncryptedSymmetricKey)>,
+    ) -> RegisterKeyResult {
+        match self.devices.get_mut(&caller) {
+            Some(device_data) => {
+                for (public_key, encrypted_symmetric_key) in keys {
+                    if !Self::is_registered_public_key(device_data, &public_key) {
+                        return Err(DeviceError::UnknownPublicKey);
+                    }
+                    device_data.keys.insert(public_key, encrypted_symmetric_key);
+                }
+                Ok(())
+            }
+            None => Err(DeviceError::DeviceNotRegistered),
+        }
+    }
+
+    /// 指定したデバイスデータに、公開鍵が登録されているかどうかを確認するための関数です。
+    /// この関数は、引数に`PublicKey`を受け取る関数内で使用します。
+    fn is_registered_public_key(device_data: &DeviceData, public_key: &PublicKey) -> bool {
+        device_data.aliases.values().any(|key| key == public_key)
+    }
 }
