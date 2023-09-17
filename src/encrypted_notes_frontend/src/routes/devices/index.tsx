@@ -35,7 +35,8 @@ export const Devices = () => {
     setIsLoading(true);
     try {
       // デバイスを削除します。
-      console.log('delete device');
+      await auth.actor.deleteDevice(deleteAlias);
+      await getDevices();
     } catch (err) {
       console.error(err);
       showMessage({

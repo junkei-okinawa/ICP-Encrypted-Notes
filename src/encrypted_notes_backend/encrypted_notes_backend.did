@@ -5,8 +5,8 @@ type DeviceError = variant {
   KeyNotSynchronized;
 };
 type EncryptedNote = record { id : nat; data : text };
-type Result = variant { Ok : text; Err : DeviceError };
-type Result_1 = variant { Ok; Err : DeviceError };
+type SynchronizeKeyResult = variant { Ok : text; Err : DeviceError };
+type RegisterKeyResult = variant { Ok; Err : DeviceError };
 service : {
   addNote : (text) -> ();
   getNotes : () -> (vec EncryptedNote) query;
@@ -16,8 +16,8 @@ service : {
   deleteDevice : (text) -> ();
   getDeviceAliases : () -> (vec text) query;
   isEncryptedSymmetricKeyRegistered : () -> (bool) query;
-  registerEncryptedSymmetricKey : (text, text) -> (Result_1);
-  uploadEncryptedSymmetricKeys : (vec record { text; text }) -> (Result_1);
+  registerEncryptedSymmetricKey : (text, text) -> (RegisterKeyResult);
+  uploadEncryptedSymmetricKeys : (vec record { text; text }) -> (RegisterKeyResult);
   getUnsyncedPublicKeys : () -> (vec text) query;
-  getEncryptedSymmetricKey : (text) -> (Result) query;
+  getEncryptedSymmetricKey : (text) -> (SynchronizeKeyResult) query;
 };
