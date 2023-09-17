@@ -64,8 +64,11 @@ export const Notes = () => {
     setIsLoading(true);
 
     try {
-      // バックエンドキャニスターにノートを追加します。
-      await auth.actor.addNote(currentNote.data);
+      // ノートの暗号化を行います。
+      const encryptedNote = await auth.cryptoService.encryptNote(
+        currentNote.data,
+      );
+      await auth.actor.addNote(encryptedNote);
       await getNotes();
     } catch (err) {
       showMessage({
@@ -128,8 +131,15 @@ export const Notes = () => {
     setIsLoading(true);
 
     try {
-      // バックエンドキャニスターにノートを追加します。
-      await auth.actor.updateNote(currentNote);
+      // ノートの暗号化を行います。
+      const encryptedData = await auth.cryptoService.encryptNote(
+        currentNote.data,
+      );
+      const encryptedNote = {
+        id: currentNote.id,
+        data: encryptedData,
+      };
+      await auth.actor.updateNote(encryptedNote);
       await getNotes();
     } catch (err) {
       showMessage({

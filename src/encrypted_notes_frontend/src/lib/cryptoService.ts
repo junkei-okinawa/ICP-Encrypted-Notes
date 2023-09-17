@@ -147,9 +147,35 @@ export class CryptoService {
       throw new Error('Not found symmetric key');
     }
 
-    /** 暗号化処理を実装します。 */
+    // 12バイトのIV（初期化ベクター）を生成します。
+    // // 同じ鍵で繰り返し暗号化を行う際に、それぞれの暗号文が同じにならないようにするためです。
+    const iv = window.crypto.getRandomValues(
+      new Uint8Array(CryptoService.INIT_VECTOR_LENGTH),
+    );
 
-    return data;
+    // ノートをUTF-8のバイト配列に変換します。
+    const encodedNote: Uint8Array = new TextEncoder().encode(data);
+
+    // 対称鍵を使ってノートを暗号化します。
+    const encryptedNote: ArrayBuffer = await window.crypto.subtle.encrypt(
+      // 使用するアルゴリズム
+      {
+        name: 'AES-GCM',
+        iv,
+      },
+      // 使用する鍵
+      this.symmetricKey,
+      // 暗号化するデータ
+      encodedNote,
+    );
+
+    // テキストデータとIVを結合します。
+    // // IVは、復号時に再度使う必要があるためです。
+    const decodedIv: string = this.arrayBufferToBase64(iv);
+    const decodedEncryptedNote: string =
+      this.arrayBufferToBase64(encryptedNote);
+
+    return decodedIv + decodedEncryptedNote;
   }
 
   public async trySyncSymmetricKey(): Promise<boolean> {
