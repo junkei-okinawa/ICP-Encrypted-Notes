@@ -111,9 +111,17 @@ export const Notes = () => {
     }
 
     try {
-      // バックエンドキャニスターからノート一覧を取得します。
+      const decryptedNotes = new Array<EncryptedNote>();
       const notes = await auth.actor.getNotes();
-      setNotes(notes);
+      // 暗号化されたノートを復号します。
+      for (const note of notes) {
+        const decryptedData = await auth.cryptoService.decryptNote(note.data);
+        decryptedNotes.push({
+          id: note.id,
+          data: decryptedData,
+        });
+      }
+      setNotes(decryptedNotes);
     } catch (err) {
       showMessage({
         title: 'Failed to get notes',

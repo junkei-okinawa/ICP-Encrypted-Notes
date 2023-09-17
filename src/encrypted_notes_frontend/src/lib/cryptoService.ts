@@ -137,9 +137,29 @@ export class CryptoService {
       throw new Error('Not found symmetric key');
     }
 
-    /** 復号処理を実装します。 */
+    // テキストデータとIVを分離します。
+    const base64IvLength: number = (CryptoService.INIT_VECTOR_LENGTH / 3) * 4;
+    const decodedIv = data.slice(0, base64IvLength);
+    const decodedEncryptedNote = data.slice(base64IvLength);
 
-    return data;
+    // 一文字ずつ`charCodeAt()`で文字コードに変換します。
+    const encodedIv = this.base64ToArrayBuffer(decodedIv);
+    const encodedEncryptedNote = this.base64ToArrayBuffer(decodedEncryptedNote);
+
+    const decryptedNote: ArrayBuffer = await window.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: encodedIv,
+      },
+      this.symmetricKey,
+      encodedEncryptedNote,
+    );
+
+    const decodedDecryptedNote: string = new TextDecoder().decode(
+      decryptedNote,
+    );
+
+    return decodedDecryptedNote;
   }
 
   public async encryptNote(data: string): Promise<string> {
