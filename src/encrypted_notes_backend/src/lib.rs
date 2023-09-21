@@ -1,9 +1,8 @@
 use crate::devices::*;
 use crate::notes::*;
+use candid::Principal;
 use ic_cdk::api::caller as caller_api;
-use ic_cdk::export::candid::{candid_method, export_service};
-use ic_cdk::export::Principal;
-use ic_cdk_macros::*;
+use ic_cdk_macros::{export_candid, query, update};
 use std::cell::RefCell;
 
 mod devices;
@@ -29,7 +28,6 @@ fn is_caller_registered(caller: Principal) -> bool {
     DEVICES.with(|devices| devices.borrow().devices.contains_key(&caller))
 }
 
-#[candid_method(update)]
 #[update(name = "registerDevice")]
 fn register_device(alias: DeviceAlias, public_key: PublicKey) {
     let caller = caller();
@@ -41,7 +39,6 @@ fn register_device(alias: DeviceAlias, public_key: PublicKey) {
     })
 }
 
-#[candid_method(query)]
 #[query(name = "getDeviceAliases")]
 fn get_device_aliases() -> Vec<DeviceAlias> {
     let caller = caller();
@@ -50,7 +47,6 @@ fn get_device_aliases() -> Vec<DeviceAlias> {
     DEVICES.with(|devices| devices.borrow().get_device_aliases(caller))
 }
 
-#[candid_method(update)]
 #[update(name = "deleteDevice")]
 fn delete_device(alias: DeviceAlias) {
     let caller = caller();
@@ -61,7 +57,6 @@ fn delete_device(alias: DeviceAlias) {
     })
 }
 
-#[candid_method(query)]
 #[query(name = "getEncryptedSymmetricKey")]
 fn get_encrypted_symmetric_key(public_key: PublicKey) -> SynchronizeKeyResult {
     let caller = caller();
@@ -74,7 +69,6 @@ fn get_encrypted_symmetric_key(public_key: PublicKey) -> SynchronizeKeyResult {
     })
 }
 
-#[candid_method(query)]
 #[query(name = "getUnsyncedPublicKeys")]
 fn get_unsynced_public_keys() -> Vec<PublicKey> {
     let caller = caller();
@@ -83,7 +77,6 @@ fn get_unsynced_public_keys() -> Vec<PublicKey> {
     DEVICES.with(|devices| devices.borrow_mut().get_unsynced_public_keys(caller))
 }
 
-#[candid_method(query)]
 #[query(name = "isEncryptedSymmetricKeyRegistered")]
 fn is_encrypted_symmetric_key_registered() -> bool {
     let caller = caller();
@@ -96,7 +89,6 @@ fn is_encrypted_symmetric_key_registered() -> bool {
     })
 }
 
-#[candid_method(update)]
 #[update(name = "registerEncryptedSymmetricKey")]
 fn register_encrypted_symmetric_key(
     public_key: PublicKey,
@@ -114,7 +106,6 @@ fn register_encrypted_symmetric_key(
     })
 }
 
-#[candid_method(update)]
 #[update(name = "uploadEncryptedSymmetricKeys")]
 fn upload_encrypted_symmetric_keys(
     keys: Vec<(PublicKey, EncryptedSymmetricKey)>,
@@ -129,7 +120,6 @@ fn upload_encrypted_symmetric_keys(
     })
 }
 
-#[candid_method(query)]
 #[query(name = "getNotes")]
 fn get_notes() -> Vec<EncryptedNote> {
     let caller = caller();
@@ -137,7 +127,6 @@ fn get_notes() -> Vec<EncryptedNote> {
     NOTES.with(|notes| notes.borrow().get_notes(caller))
 }
 
-#[candid_method(update)]
 #[update(name = "addNote")]
 fn add_note(encrypted_text: String) {
     let caller = caller();
@@ -147,7 +136,6 @@ fn add_note(encrypted_text: String) {
     })
 }
 
-#[candid_method(update)]
 #[update(name = "deleteNote")]
 fn delete_note(id: u128) {
     let caller = caller();
@@ -157,7 +145,6 @@ fn delete_note(id: u128) {
     })
 }
 
-#[candid_method(update)]
 #[update(name = "updateNote")]
 fn update_note(new_note: EncryptedNote) {
     let caller = caller();
@@ -168,16 +155,4 @@ fn update_note(new_note: EncryptedNote) {
 }
 
 // The workaround to generate did files automatically
-fn export_candid() -> String {
-    export_service!();
-    __export_service()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::export_candid;
-    #[test]
-    fn _write_candid_to_disk() {
-        std::fs::write("encrypted_notes_backend.did", export_candid()).expect("Write failed.");
-    }
-}
+export_candid!();
